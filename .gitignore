@@ -1,0 +1,54 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.* 
+!.env.example
+
+# Logs
+logs
+*.log
+log.txt
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.vercel/
+.netlify/
+
+# temp files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# Lint
+.eslintcache
+
+# Next.js
+.next/
+*.next
+
+# Vite
+vite.config.ts.timestamp*
