@@ -8,7 +8,6 @@ const {
   deleteTask,
 } = require('../controllers/taskController');
 const { protect } = require('../middleware/auth');
-const { authorize } = require('../middleware/roleCheck');
 const { taskValidation, validate } = require('../utils/validators');
 
 // All routes require authentication
@@ -24,6 +23,6 @@ router
   .route('/:id')
   .get(getTask)
   .put(taskValidation, validate, updateTask)
-  .delete(authorize('admin'), deleteTask); // Only admin can delete
+  .delete(deleteTask); // Anyone can delete their own tasks
 
 module.exports = router;

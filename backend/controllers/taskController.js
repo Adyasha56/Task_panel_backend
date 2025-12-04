@@ -5,11 +5,26 @@ const Task = require('../models/Task');
 // @access  Private
 exports.getTasks = async (req, res) => {
   try {
-    // Admin can see all tasks, users see only their own
-    const filter = req.user.role === 'admin' ? {} : { user: req.user.id };
+    let filter;
+    
+    if (req.user.role === 'admin') {
+      // Admin can see all tasks
+      filter = {};
+    } else {
+      // Users can only see their own tasks + tasks created by admin
+      const adminUsers = await require('../models/User').find({ role: 'admin' }).select('_id');
+      const adminIds = adminUsers.map(admin => admin._id);
+      
+      filter = {
+        $or: [
+          { user: req.user.id }, // Their own tasks
+          { user: { $in: adminIds } } // Tasks created by any admin
+        ]
+      };
+    }
 
     const tasks = await Task.find(filter)
-      .populate('user', 'name email')
+      .populate('user', 'name email role')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -31,7 +46,7 @@ exports.getTasks = async (req, res) => {
 // @access  Private
 exports.getTask = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id).populate('user', 'name email');
+    const task = await Task.findById(req.params.id).populate('user', 'name email role');
 
     if (!task) {
       return res.status(404).json({
@@ -99,8 +114,11 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    // Check if user owns the task or is admin
-    if (task.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check permissions
+    const isOwner = task.user.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this task',
@@ -110,7 +128,7 @@ exports.updateTask = async (req, res) => {
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    });
+    }).populate('user', 'name email role');
 
     res.status(200).json({
       success: true,
@@ -128,7 +146,7 @@ exports.updateTask = async (req, res) => {
 
 // @desc    Delete task
 // @route   DELETE /api/v1/tasks/:id
-// @access  Private (Admin only)
+// @access  Private
 exports.deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -137,6 +155,14 @@ exports.deleteTask = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Task not found',
+      });
+    }
+
+    // Only the task owner can delete their own task
+    if (task.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own tasks',
       });
     }
 
